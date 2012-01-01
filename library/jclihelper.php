@@ -67,7 +67,7 @@ abstract class JCliHelper extends JCli {
 		$this->method = null;
 
 		$this->tasks = array();
-		
+
 		$this->log('teste');
 
 		$reflection = new ReflectionClass($refletion);
@@ -93,7 +93,6 @@ abstract class JCliHelper extends JCli {
 				$this->tasks[$method->name]['help'] = $this->parseHelp($this->tasks[$method->name]['doc']);
 			}
 		}
-		//print_r($this->tasks);
 		parent::__construct();
 	}
 
@@ -110,7 +109,6 @@ abstract class JCliHelper extends JCli {
 		//	$response .= $name . PHP_EOL;
 		//}
 
-
 		$result = $this->$name($this->input->args[1]);
 		return $result;
 	}
@@ -120,7 +118,7 @@ abstract class JCliHelper extends JCli {
 	 * 
 	 */
 	protected function interative($options = NULL) {
-
+		$i = 0;
 		do {
 			if ($this->input->get('help')) {
 				$this->getHelp($this->method);
@@ -138,6 +136,7 @@ abstract class JCliHelper extends JCli {
 					}
 				}
 			}
+			$this->log('interative ' . ++$i, $this->args, 6);
 			$this->cursor();
 			$this->input = new JInputCli(); //Reset input
 		} while (!$this->exit);
@@ -237,24 +236,24 @@ abstract class JCliHelper extends JCli {
 	 * @param int $level
 	 * @return void
 	 */
-	protected function log($message, $aditionalInfo = "\e", $level = 4) {
+	protected function log($message, $aditionalInfo = "\e", $level = 5) {
 		defined('JDEBUG') or define('JDEBUG', 1);
-		
+
 		//Load loggger
 		if (!$this->logger) {
-			jimport('joomla.error.log');
-			$this->logger = JLog::getInstance('jclihelper');
+			jimport('joomla.log.log');
+			$this->logger = JLog::getInstance('error.log', NULL, JPATH_BASE);
 		}
 
 		//Parse adicitional info, if is need
 		if ($aditionalInfo != "\e") {
 			if (strpos($message, '%s') === FALSE) {
-				$message = $message . ' ' . json_encode($var);
+				$message = $message . ' ' . json_encode($aditionalInfo);
 			} else {
-				$message = str_replace('%s', json_encode($var), $message);
+				$message = str_replace('%s', json_encode($aditionalInfo), $message);
 			}
 		}
-		$this->logger->addEntry(array('priority' => $level, 'comment' => $message)); 
+		$this->logger->addEntry(array('priority' => $level, 'comment' => $message));
 	}
 
 }
