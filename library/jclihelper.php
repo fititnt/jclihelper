@@ -6,12 +6,7 @@
  * @copyright   Copyright (C) Joomla! Coders Brazil @JCoderBR. All rights reserved.
  * @license     GNU General Public License version 3
  */
-
-/**
- * Dump params vars using PHP getopt function ( http://php.net/manual/en/function.getopt.php )
- * On windows, PHP 5.3+ is requerid
- */
-class JCliHelper extends JCli {
+abstract class JCliHelper extends JCli {
 
 	/**
 	 *
@@ -21,79 +16,245 @@ class JCliHelper extends JCli {
 
 	/**
 	 *
-	 * @var type 
+	 * @var string 
 	 */
-	private $fonte;
+	private $cursor;
+
+	/**
+	 * Tasks that can be excecuted by end user
+	 * Are all public methods from class that extends this class
+	 * 
+	 * @var object 
+	 */
+	protected $tasks;
 
 	/**
 	 *
-	 * @var type 
+	 * @var boolean 
 	 */
-	private $destino;
+	protected $exit;
 
-	function __contruct() {
-		$this->fonte = __DIR__;
-		$this->destino = __DIR__;
-	}
-
-	public function load($options) {
-		$this->parseArgs($options);
-		$this->dumpArgs();
-		//$this->out('PHP getopt() output: ');
-	}
-
-	private function doTask($args) {
-		
-	}
-	
 	/**
-	 * Dump informatou to debug
+	 * Witch method is active now
+	 * 
+	 * @var string 
 	 */
-	protected function jcliDebug(){
-		
-	}
+	protected $method;
+
+	/**
+	 * Last Error message
+	 * 
+	 * @var string 
+	 */
+	protected $lastError;
+
+	/**
+	 *
+	 * @var instance 
+	 */
+	protected $logger;
 
 	/**
 	 * 
-	 * @param array $options 
+	 * @todo Is really need asks children class name on this construct param? I'm not sure
+	 *
+	 * @param type $refletion 
 	 */
-	private function parseArgs($options) {
-		foreach ($options AS $key => $item) {
-			$this->args[$key] = $item;
+	function __construct($refletion) {
+
+		$this->exit = false;
+
+		$this->method = null;
+
+		$this->tasks = array();
+		
+		$this->log('teste');
+
+		$reflection = new ReflectionClass($refletion);
+		foreach ($reflection->getMethods() AS $method) {
+			if ($method->class == 'JCli' || $method->class == 'JCliHelper') {
+				continue;
+			} else if ($method->name == '__construct') {
+				continue;
+			}
+			if ($method->isPublic()) {
+				///Itinerate for each param
+				foreach ($method->getParameters() AS $param) {
+					if ($param->isOptional()) {//&& $param->isDefaultValueAvailable()
+						$this->tasks[$method->name]['args'][$param->name]['default'] = $param->getDefaultValue();
+						$this->tasks[$method->name]['args'][$param->name]['optional'] = TRUE;
+					} else {
+						$this->tasks[$method->name]['args'][$param->name]['default'] = NULL;
+						$this->tasks[$method->name]['args'][$param->name]['optional'] = FALSE;
+					}
+				}
+				///Get RAW document from method and also try parse each method
+				$this->tasks[$method->name]['doc'] = $method->getDocComment();
+				$this->tasks[$method->name]['help'] = $this->parseHelp($this->tasks[$method->name]['doc']);
+			}
 		}
+		//print_r($this->tasks);
+		parent::__construct();
 	}
 
 	/**
-	 * Delete (set to NULL) generic variable
+	 * Return one Array of parsed result
 	 * 
-	 * @param String $name: name of var do delete
-	 * @return Object $this
+	 * @todo Still not finished
+	 * 
+	 * @param type $DocComment 
 	 */
-	public function del($name) {
-		$this->$name = NULL;
-		return $this;
+	protected function executeMethod($name) {
+		///Parse method arguments...
+		//foreach ($this->input->args AS $value) {
+		//	$response .= $name . PHP_EOL;
+		//}
+
+
+		$result = $this->$name($this->input->args[1]);
+		return $result;
 	}
 
 	/**
-	 * Return generic variable
+	 * Turn CLI interative, based on Docbloc of each cli method
 	 * 
-	 * @param String $name: name of var to return
-	 * @return Mixed this->$name: value of var
 	 */
-	public function get($name) {
-		return $this->$name;
+	protected function interative($options = NULL) {
+
+		do {
+			if ($this->input->get('help')) {
+				$this->getHelp($this->method);
+			} else if (!$this->method) {//Not inside a method
+				if (!isset($this->input->args[0]) || !$this->input->args[0]) {
+					$this->lastError = JText::_('No method selected');
+					$this->out($this->lastError);
+					$this->out($this->getHelp($this->method));
+				} else {
+					$task = $this->searchMethod($this->input->args[0]);
+					if (!$task) {
+						$this->lastError = JText::_('Task not found');
+					} else {
+						$this->executeMethod($task);
+					}
+				}
+			}
+			$this->cursor();
+			$this->input = new JInputCli(); //Reset input
+		} while (!$this->exit);
 	}
 
 	/**
-	 * Set one generic variable the desired value
+	 * Return one Array of parsed result
 	 * 
-	 * @param String $name: name of var to set value
-	 * @param Mixed $value: value to set to desired variable
-	 * @return Object $this
+	 * @todo Still not finished
+	 * 
+	 * @param type $DocComment 
 	 */
-	public function set($name, $value) {
-		$this->$name = $value;
-		return $this;
+	protected function parseDocComment($DocComment) {
+		$data = trim(preg_replace('/\r?\n *\* */', ' ', $DocComment));
+		preg_match_all('/@([a-z]+)\s+(.*?)\s*(?=$|@[a-z]+\s)/s', $data, $matches);
+		$result = array_combine($matches[1], $matches[2]);
+		print_r($result);
+		return $result;
+	}
+
+	/**
+	 * Return one string with result from a PHP DocBlock string input
+	 * 
+	 * @todo Still not finished. Need fist finish parseDocComment() to inprove this one
+	 * 
+	 * @param type $DocComment 
+	 */
+	protected function parseHelp($DocComment) {
+		$result = str_replace(array('/**', '* ', '*/'), '', $DocComment);
+		return $result;
+	}
+
+	/**
+	 * Search for avalible tasks (Case insensitive)
+	 * 
+	 * @param string $method
+	 * @return string Method name if true, false if not found 
+	 */
+	protected function searchMethod($method) {
+		foreach ($this->tasks AS $name => $item) {
+			if (strtolower($name) == strtolower($method)) {
+				$this->method = $name;
+				return $name;
+			}
+		}
+		$this->method = NULL;
+
+		return FALSE;
+	}
+
+	/**
+	 *
+	 * @param type $options 
+	 */
+	protected function cursor($options = NULL) {
+		if ($this->method) {
+			$this->cursor = $this->method . '>';
+		} else {
+			$this->cursor = 'jcli' . '>';
+		}
+		echo $this->cursor;
+		$this->in();
+	}
+
+	/**
+	 * Return one string with desired Help
+	 * 
+	 * @param string $scope Scope of help. NULL for all methods
+	 * @return string Desired help
+	 */
+	protected function getHelp($scope = NULL) {
+		$response = PHP_EOL;
+		if (!$scope) {
+			$response .= JTEXT::_('Avalible functions') . PHP_EOL;
+			foreach ($this->tasks AS $name => $item) {
+				$response .= '    ' . $name . PHP_EOL;
+			}
+		}
+		return $response;
+	}
+
+	/**
+	 * Error level
+	 * Level 9: BREAKPOINT. Alias for DEBUG.
+	 * Level 8: DEBUG. Debugging message.
+	 * Level 7: INFO. Informational message.
+	 * Level 6: NOTICE. Normal, but significant condition.
+	 * Level 5: WARNING. Warning conditions.
+	 * Level 4: ERROR. Error conditions.
+	 * Level 3: CRITICAL. Critical conditions.
+	 * Level 2: ALERT. Action must be taken immediately.
+	 * Level 1: EMERGENCY. The system is unusable.
+	 * Level 0: No error report
+	 * 
+	 * @param string $message
+	 * @param mixed $aditionalInfo
+	 * @param int $level
+	 * @return void
+	 */
+	protected function log($message, $aditionalInfo = "\e", $level = 4) {
+		defined('JDEBUG') or define('JDEBUG', 1);
+		
+		//Load loggger
+		if (!$this->logger) {
+			jimport('joomla.error.log');
+			$this->logger = JLog::getInstance('jclihelper');
+		}
+
+		//Parse adicitional info, if is need
+		if ($aditionalInfo != "\e") {
+			if (strpos($message, '%s') === FALSE) {
+				$message = $message . ' ' . json_encode($var);
+			} else {
+				$message = str_replace('%s', json_encode($var), $message);
+			}
+		}
+		$this->logger->addEntry(array('priority' => $level, 'comment' => $message)); 
 	}
 
 }

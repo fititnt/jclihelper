@@ -17,39 +17,38 @@ include_once dirname(__FILE__) . "/../library/jclihelper.php"; //Path to JClihel
 
 jimport('joomla.filesystem.folder');
 
-class Estagiario extends JCliHelper {
+class Test1 extends JCliHelper {
 
+
+	
 	/**
-	 *
-	 * @var array 
+	 * 
 	 */
-	private $args;
+	function __construct() {
+		parent::__construct(get_class($this));
+		$this->interative();
+	}	
 
+	
 	/**
-	 *
-	 * @var type 
+	 * Deescription of my class
+	 * 
+	 * @param string $param1
+	 * @param string $param2
+	 * @return string 
 	 */
-	private $fonte;
-
-	/**
-	 *
-	 * @var type 
-	 */
-	private $destino;
-
-	function __contruct() {
-		$this->fonte = __DIR__;
-		$this->destino = __DIR__;
-	}
-
-	public function load($options) {
-		$this->parseArgs($options);
-		$this->dumpArgs();
-		//$this->out('PHP getopt() output: ');
+	public function myTask($param1, $param2 = ''){
+		$result = $param1 . ' ' . $param2;
+		echo $result;
+		return $result;
 	}
 	
-		
-	private function doTask($args){
+	/**
+	 *
+	 * @param mixed $args
+	 * @param mixed $canBeNull 
+	 */
+	private function doTask($args, $canBeNull = NULL){
 		
 	}
 
@@ -58,56 +57,30 @@ class Estagiario extends JCliHelper {
 	 *
 	 * @param array $options 
 	 */
-	private function parseArgs($options) {
+	public function parseArgs($options) {
 		foreach ($options AS $key => $item) {
 			$this->args[$key] = $item;
 		}
 	}
-
+	
 	/**
-	 *
-	 * @param array $args 
+	 * Dump informatou to debug
 	 */
-	public function dumpArgs($args = NULL) {
-		if (!$args) {
-			$args = $this->args;
-		}
-		if (is_null($args)) {
-			return null;
-		}
-		foreach ($args AS $key => $item) {
-			$this->out($key . ' => ' . $item);
-		}
-	}
-
-	/**
-	 *
-	 * @param string $local
-	 * @param boolean $imprime
-	 * @return array $arquivos
-	 */
-	public function listaDiretorio($local = null, $imprime = false) {
-		if (!$local) {
-			$local = $this->fonte;
-		}
-		$arquivos = array();
-		JFolder::makeSafe($local);
-		$arquivos = JFolder::files($local);
-
-		if ($imprime) {
-			foreach ($arquivos AS $item) {
-				$this->out($item);
-			}
-		}
-		return $arquivos;
+	protected function jcliDebug(){
+		//print_r($this);
 	}
 }
 
-$cli = JCli::getInstance('Estagiario');
+$cli = JCli::getInstance('Test1');
+
+//print_r($cli);
+
+$oClassReflect = new ReflectionClass("Test1");
+$sDocComment = $oClassReflect->getDocComment();
+
+//print_r($sDocComment);
+
+//print_r($oClassReflect->getMethods());
 
 
-//$cli->argsDump( getopt('a:b:c:d:e:f:g:h:i:j:k:l:m:n:o:p:q:r:s:t:u:v:x:z:') );
-
-$cli->load(getopt('f:fonte:d:destino'));
-
-//$cli->listaDiretorio(__DIR__);
+//print_r($oClassReflect->getMethod('myTask')->getDocComment());
