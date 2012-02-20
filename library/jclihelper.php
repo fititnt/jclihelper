@@ -1,10 +1,10 @@
 <?php
 
 /**
- * @package     CLIArgumentsDump
- * @author      Emerson Rocha Luiz - @fititnt ( http://fititnt.org )
- * @copyright   Copyright (C) Joomla! Coders Brazil @JCoderBR. All rights reserved.
- * @license     GNU General Public License version 3
+ * @package     JCliHelper
+ * @author      Emerson Rocha Luiz - emerson at webdesign.eng.br - http://fititnt.org
+ * @copyright   Copyright (C) 2011 Webdesign Assessoria em Tecniligia da Informacao. All rights reserved.
+ * @license     GNU General Public License version 3. See license-gpl3.txt
  */
 abstract class JCliHelper extends JCli {
 
@@ -136,7 +136,7 @@ abstract class JCliHelper extends JCli {
 					}
 				}
 			}
-			$this->log('interative ' . ++$i, $this->args, 6);
+			$this->log('interative ' . ++$i, $this->args, 'NOTICE');
 			$this->cursor();
 			$this->input = new JInputCli(); //Reset input
 		} while (!$this->exit);
@@ -220,23 +220,23 @@ abstract class JCliHelper extends JCli {
 
 	/**
 	 * Error level
-	 * Level 9: BREAKPOINT. Alias for DEBUG.
-	 * Level 8: DEBUG. Debugging message.
-	 * Level 7: INFO. Informational message.
-	 * Level 6: NOTICE. Normal, but significant condition.
-	 * Level 5: WARNING. Warning conditions.
-	 * Level 4: ERROR. Error conditions.
-	 * Level 3: CRITICAL. Critical conditions.
-	 * Level 2: ALERT. Action must be taken immediately.
-	 * Level 1: EMERGENCY. The system is unusable.
-	 * Level 0: No error report
+	 * BREAKPOINT: Alias for DEBUG.
+	 * DEBUG: Debugging message.
+	 * INFO: Informational message.
+	 * NOTICE: Normal, but significant condition.
+	 * WARNING: Warning conditions.
+	 * ERROR: Error conditions.
+	 * CRITICAL: Critical conditions.
+	 * ALERT: Action must be taken immediately.
+	 * EMERGENCY: The system is unusable.
+	 * Level '': No error report
 	 * 
 	 * @param string $message
 	 * @param mixed $aditionalInfo
 	 * @param int $level
 	 * @return void
 	 */
-	protected function log($message, $aditionalInfo = "\e", $level = 5) {
+	protected function log($message, $aditionalInfo = "\e", $level = 'NOTICE') {
 		defined('JDEBUG') or define('JDEBUG', 1);
 
 		//Load loggger

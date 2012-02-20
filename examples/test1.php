@@ -1,35 +1,30 @@
 <?php
 
 /**
- * @package     CLIArgumentsDump
- * @author      Emerson Rocha Luiz - @fititnt ( http://fititnt.org )
- * @copyright   Copyright (C) Joomla! Coders Brazil @JCoderBR. All rights reserved.
- * @license     GNU General Public License version 3
+ * @package     JCliHelper
+ * @author      Emerson Rocha Luiz - emerson at webdesign.eng.br - http://fititnt.org
+ * @copyright   Copyright (C) 2011 Webdesign Assessoria em Tecniligia da Informacao. All rights reserved.
+ * @license     GNU General Public License version 3. See license-gpl3.txt
  */
-
 define('_JEXEC', 1); // You MUST define it. Or Joomla Framework will not load
-define('JPATH_BASE', dirname(__FILE__)); // Setup the base path related constant.
-define('JPATH_SITE', dirname(__FILE__)); //JFolder
-include_once dirname(__FILE__) . "/../../../joomla/joomla-platform/libraries/import.php"; //path to Joomla-platform
+define('JPATH_BASE', __DIR__); // Setup the base path related constant.
+define('JPATH_SITE', __DIR__); //JFolder
+include_once __DIR__ . "/../../../joomla/joomla-platform/libraries/import.php"; //path to Joomla-platform
 jimport('joomla.application.cli');
-include_once dirname(__FILE__) . "/../library/jclihelper.php"; //Path to JClihelper
-
+include_once __DIR__ . "/../library/jclihelper.php"; //Path to JClihelper
 
 jimport('joomla.filesystem.folder');
 
 class Test1 extends JCliHelper {
 
-
-	
 	/**
 	 * 
 	 */
 	function __construct() {
 		parent::__construct(get_class($this));
 		$this->interative();
-	}	
+	}
 
-	
 	/**
 	 * Deescription of my class
 	 * 
@@ -37,18 +32,18 @@ class Test1 extends JCliHelper {
 	 * @param string $param2
 	 * @return string 
 	 */
-	public function myTask($param1, $param2 = ''){
+	public function myTask($param1, $param2 = '') {
 		$result = $param1 . ' ' . $param2;
 		echo $result;
 		return $result;
 	}
-	
+
 	/**
 	 *
 	 * @param mixed $args
 	 * @param mixed $canBeNull 
 	 */
-	private function doTask($args, $canBeNull = NULL){
+	private function doTask($args, $canBeNull = NULL) {
 		
 	}
 
@@ -62,13 +57,14 @@ class Test1 extends JCliHelper {
 			$this->args[$key] = $item;
 		}
 	}
-	
+
 	/**
 	 * Dump informatou to debug
 	 */
-	protected function jcliDebug(){
+	protected function jcliDebug() {
 		//print_r($this);
 	}
+
 }
 
 $cli = JCli::getInstance('Test1');
