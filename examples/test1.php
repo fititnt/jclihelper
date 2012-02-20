@@ -21,6 +21,8 @@ class Test1 extends JCliHelper {
 	 * 
 	 */
 	function __construct() {
+		$this->environment->name = 'Test1';
+		
 		parent::__construct(get_class($this));
 		$this->interative();
 	}
@@ -52,10 +54,12 @@ class Test1 extends JCliHelper {
 	 *
 	 * @param array $options 
 	 */
-	public function parseArgs($options) {
-		foreach ($options AS $key => $item) {
-			$this->args[$key] = $item;
+	public function parseArgs($options = NULL) {
+		$result = '';
+		foreach ($this->args AS $key => $value) {
+			$result .= $key . ' => ' . $value . PHP_EOL;
 		}
+		return $result;
 	}
 
 	/**

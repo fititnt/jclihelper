@@ -12,10 +12,12 @@ abstract class JCliHelper extends JCli {
 	 *
 	 * @var array 
 	 */
-	private $args;
+	protected $args;
 
 	/**
 	 *
+	 * @deprecated
+	 * 
 	 * @var string 
 	 */
 	private $cursor;
@@ -27,6 +29,17 @@ abstract class JCliHelper extends JCli {
 	 * @var object 
 	 */
 	protected $tasks;
+
+	/**
+	 * Informatou about this application
+	 * 
+	 * $this->environment->name : Name of this application
+	 * $this->environment->status: 'input' or 'output'. Internal use.
+	 * $this->environment->classname
+	 * 
+	 * @var object 
+	 */
+	protected $environment;
 
 	/**
 	 *
@@ -49,6 +62,13 @@ abstract class JCliHelper extends JCli {
 	protected $lastError;
 
 	/**
+	 * Last Result
+	 * 
+	 * @var mixed 
+	 */
+	protected $lastResult;
+
+	/**
 	 *
 	 * @var instance 
 	 */
@@ -62,6 +82,13 @@ abstract class JCliHelper extends JCli {
 	 */
 	function __construct($refletion) {
 
+		//Before call this construct, you can define app name. If empty, will...
+		if (!isset($this->environment->name)) {
+			$this->environment->name = 'jcli';
+		}
+		$this->environment->status = 'input';
+
+
 		$this->exit = false;
 
 		$this->method = null;
@@ -71,6 +98,8 @@ abstract class JCliHelper extends JCli {
 		$this->log('teste');
 
 		$reflection = new ReflectionClass($refletion);
+		$this->environment->classname = $reflection->name;
+
 		foreach ($reflection->getMethods() AS $method) {
 			if ($method->class == 'JCli' || $method->class == 'JCliHelper') {
 				continue;
@@ -120,24 +149,32 @@ abstract class JCliHelper extends JCli {
 	protected function interative($options = NULL) {
 		$i = 0;
 		do {
-			if ($this->input->get('help')) {
-				$this->getHelp($this->method);
-			} else if (!$this->method) {//Not inside a method
-				if (!isset($this->input->args[0]) || !$this->input->args[0]) {
-					$this->lastError = JText::_('No method selected');
-					$this->out($this->lastError);
-					$this->out($this->getHelp($this->method));
-				} else {
-					$task = $this->searchMethod($this->input->args[0]);
-					if (!$task) {
-						$this->lastError = JText::_('Task not found');
-					} else {
-						$this->executeMethod($task);
-					}
-				}
+			$this->parseInput();
+			if ($this->method) {
+				$this->callMethod();
+				echo $this->parseCursor();
+				echo $this->parseOutput();
 			}
+			echo $this->parseCursor();
+			$this->in();//To avoid infinite loop
+//			if ($this->input->get('help')) {
+//				$this->getHelp($this->method);
+//			} else if (!$this->method) {//Not inside a method
+//				if (!isset($this->input->args[0]) || !$this->input->args[0]) {
+//					$this->lastError = JText::_('No method selected');
+//					$this->out($this->lastError);
+//					$this->out($this->getHelp($this->method));
+//				} else {
+//					$task = $this->searchMethod($this->input->args[0]);
+//					if (!$task) {
+//						$this->lastError = JText::_('Task not found');
+//					} else {
+//						$this->executeMethod($task);
+//					}
+//				}
+//			}
 			$this->log('interative ' . ++$i, $this->args, 'NOTICE');
-			$this->cursor();
+//			$this->cursor();
 			$this->input = new JInputCli(); //Reset input
 		} while (!$this->exit);
 	}
@@ -157,6 +194,25 @@ abstract class JCliHelper extends JCli {
 		return $result;
 	}
 
+	protected function parseInput() {
+		if (is_array($this->input->args) && empty($this->input->args)) {
+			$this->method = NULL; //Reset method
+		} else {
+			$method = $this->searchMethod($this->input->args[0]);
+			if ($method) {//If method exist
+				$this->method = $method; //Set method
+				unset($this->args); //Reset old args
+				$this->args = array(); //Initialize new args
+				foreach ($this->input->args AS $k => $v) {
+					if (strtolower($method) === strtolower($v)) {
+						continue; //Skip method name
+					}
+					$this->args[$k] = $v;
+				}
+			}
+		}
+	}
+
 	/**
 	 * Return one string with result from a PHP DocBlock string input
 	 * 
@@ -168,6 +224,17 @@ abstract class JCliHelper extends JCli {
 		$result = str_replace(array('/**', '* ', '*/'), '', $DocComment);
 		return $result;
 	}
+	
+	protected function parseOutput(){
+		$this->environment->status = 'input';
+		if(is_string($this->lastResult)){
+			$output = $this->lastResult;
+		} else {
+			//@todo improve this output (fititnt, 2012-02-20 06:41)
+			$output = PHP_EOL . json_encode($this->lastResult);
+		}
+		return $output; 
+	}
 
 	/**
 	 * Search for avalible tasks (Case insensitive)
@@ -178,7 +245,7 @@ abstract class JCliHelper extends JCli {
 	protected function searchMethod($method) {
 		foreach ($this->tasks AS $name => $item) {
 			if (strtolower($name) == strtolower($method)) {
-				$this->method = $name;
+				//$this->method = $name;
 				return $name;
 			}
 		}
@@ -188,17 +255,46 @@ abstract class JCliHelper extends JCli {
 	}
 
 	/**
+	 * 
+	 */
+	protected function callMethod() {
+		switch (strtolower($this->method)) {
+			case 'help':
+				//...
+				break;
+			case 'exit':
+				$this->exit = true;
+			default:
+				$method = $this->method;
+				if (empty($this->args)) {
+					$this->lastResult = $this->$method();
+				} else {
+					//var_dump($this->args);die;
+					$this->lastResult = call_user_func_array(array($this->environment->classname, $this->method), $this->args);
+				}
+				break;
+		}
+		$this->environment->status = 'output';
+		return $this->lastResult;
+	}
+
+	/**
 	 *
 	 * @param type $options 
 	 */
-	protected function cursor($options = NULL) {
-		if ($this->method) {
-			$this->cursor = $this->method . '>';
+	protected function parseCursor($options = NULL) {
+		if ($this->environment->status === 'input') {
+			$separator = '>';
 		} else {
-			$this->cursor = 'jcli' . '>';
+			$separator = ':';
 		}
-		echo $this->cursor;
-		$this->in();
+
+		if ($this->method) {
+			$this->cursor = $this->method . $separator;
+		} else {
+			$this->cursor = $this->environment->name . $separator;
+		}
+		return $this->cursor;
 	}
 
 	/**
